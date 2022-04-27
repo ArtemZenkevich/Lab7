@@ -1,0 +1,55 @@
+{
+  "Flats": [
+    {
+      "name": "Plushka, 6, 51",
+      "Cooridanates": {
+        "x": "13245",
+        "y": "15164"
+      },
+      "area": "55",
+      "numberOfRooms": "3",
+      "price": "5600000",
+      "furnish": "Furnish.FINE",
+      "view": "View.GOOD",
+      "house": {
+        "name": "Plushka, 6",
+        "year": "1996",
+        "numberOfFloors": "150"
+      }
+    },
+    {
+      "name": "Plushka, 7, 55",
+      "Cooridanates": {
+        "x": "19855",
+        "y": "11561"
+      },
+      "area": "60",
+      "numberOfRooms": "3",
+      "price": "5000000",
+      "furnish": "Furnish.FINE",
+      "view": "View.GOOD",
+      "house": {
+        "name": "Plushka, 7",
+        "year": "1998",
+        "numberOfFloors": "130"
+      }
+    },
+    {
+      "name": "Plushka, 10, 1",
+      "Cooridanates": {
+        "x": "15555",
+        "y": "12224"
+      },
+      "area": "45",
+      "numberOfRooms": "3",
+      "price": "4800000",
+      "furnish": "Furnish.FINE",
+      "view": "View.GOOD",
+      "house": {
+        "name": "Plushka, 10",
+        "year": "1997",
+        "numberOfFloors": "100"
+      }
+    }
+  ]
+}

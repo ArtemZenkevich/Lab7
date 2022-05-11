@@ -1,8 +1,10 @@
+import src.main.kotlin.Server.MainLog.SQLConnection
 import src.main.kotlin.Server.MainLog.WorkWithClient
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.SocketException
+import java.sql.SQLException
 import java.util.regex.Pattern
 
 object UDPServer {
@@ -31,7 +33,6 @@ object UDPServer {
                     var inputPacket = DatagramPacket(receivingDataBuffer, receivingDataBuffer.size)
                     // Получите данные от клиента и сохраните их в inputPacket
                     serverSocket.receive(inputPacket)
-
                     // Выведите на экран отправленные клиентом данные
                     var receivedData = String(inputPacket.data)
 
@@ -39,6 +40,7 @@ object UDPServer {
                     //Начало основной логики работы
                     val senderAddress = inputPacket.address
                     val senderPort = inputPacket.port
+
                     commander.interactiveMod(massage, serverSocket, senderAddress, senderPort)
  /*                   sendingDataBuffer = receivedData.toByteArray()
 

@@ -4,7 +4,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
-open class WorkWithClient {
+open abstract class WorkWithClient:SQLConnection(){
 
 
     fun Send2Client(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, message:String){

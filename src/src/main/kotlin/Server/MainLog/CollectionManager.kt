@@ -1,20 +1,15 @@
 import jdk.nashorn.internal.runtime.JSType.isNumber
 import src.main.kotlin.Server.MainLog.WorkWithClient
 import java.io.*
-import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
-import java.net.ServerSocket
+import java.sql.Connection
 import java.util.*
 
 /**
  * Класс реализации приказов {@see CommanderManager}
  */
 class CollectionManager:WorkWithClient() {
-    /**
-     * Поле хранения коллекции
-     */
-    private var Flats: PriorityQueue<Flat>? = null
     /**
      * Поле хранения времени создания коллекции
      */
@@ -32,7 +27,6 @@ class CollectionManager:WorkWithClient() {
      */
     init {
         time = Date()
-        Flats = PriorityQueue<Flat>(FlateComparator)
         manual.put("help", "вывести справку по доступным командам")
         manual.put(
             "info",
@@ -69,8 +63,13 @@ class CollectionManager:WorkWithClient() {
     /**
      * Функция добавления элементов коллекции
      */
-    fun add(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun add(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int){
         try {
+            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+            var Login = GetFromClient(serverSocket)
+            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+            var password = GetFromClient(serverSocket)
+            var connection: Connection? = getDBConnection(Login, password)
             var flag = true
             var name1: String? = null
             do {
@@ -83,7 +82,11 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var id1: Int? = Flats?.size?.plus(1)
+            var id1: Int? =null
+            var rs = getData("SELECT * FROM FLATS;", connection)
+            while (rs?.next() == true) {
+                id1 = rs.getInt("FLAT_ID")?.plus(1)
+            }
             var x1: Int? = null
             do {
                 Send2Client(serverSocket, senderAddress, senderPort, "Координата X:")
@@ -195,35 +198,37 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var flatnew: Flat = Flat(
-                id1!!.toLong(), name1!!,
-                x1!!, y1!!, area1!!, numberOfRooms1!!, price1!!, furnish(furnish1!!),
-                view(view1!!)!!, houseName1!!, year1!!, numberOfFloors1!!
-            )
+            var info1 = "INSERT INTO Flats VALUES($id1, '$name1', $x1, $y1, '$time', $area1, $numberOfFloors1, $price1, '$furnish1', '$view1', '$houseName1');"
+            var id_house: Int? = 1
+            var rl = getData("SELECT * FROM FLATS;", connection)
+            while (rs?.next() == true) {
+                id_house = rl?.getInt("FLAT_ID")?.plus(1)
+            }
 
-            Flats?.add(flatnew)
+            var info2 = "INSERT INTO HOUSE VALUES($id_house, '$houseName1', $numberOfFloors1);"
+            if (connection != null) {
+                insertIntoDB(info1, connection)
+                insertIntoDB(info2, connection)
+            }
+
             Send2Client(serverSocket, senderAddress, senderPort, "Элемент удачно добавлен.")
         } catch (ex: ArrayIndexOutOfBoundsException) {
             Send2Client(serverSocket, senderAddress, senderPort, "Ошибка переполнения коллекции")
         }
     }
     /**
-     * Функция вывода размера коллекции
-     */
-    fun getSize(): Int? {
-        return Flats?.size
-    }
-    /**
      * Функция обновления элементов коллекции
      */
-    fun update(flat: Flat, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int): Flat {
+    fun update(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int){
         try {
             var flag = true
             var answer: String? = null
             var name1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять название квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
+            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+            var Login = GetFromClient(serverSocket)
+            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+            var password = GetFromClient(serverSocket)
+            var connection: Connection? = getDBConnection(Login, password)
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Название:")
                     name1 = GetFromClient(serverSocket) as String?
@@ -235,14 +240,14 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                name1 = flat.getName()
+            var id1: Int? =null
+            if(getData("SELECT MAX('flat_id') FROM Flats;", connection!!)?.getInt("flat_id")!=null) {
+                id1 = getData("SELECT MAX('flat_id') FROM Flats;", connection!!)?.getInt("flat_id")?.plus(1)
             }
-            var id1: Int? = flat.getId()?.toInt()
+            else{
+                id1=1
+            }
             var x1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять координату X квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Координата X:")
                     x1 = GetFromClient(serverSocket) as String?
@@ -253,13 +258,9 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                x1 = flat.getCoordinates()?.x.toString()
-            }
+
             var y1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять координату Y квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
+
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Координата Y:")
                     y1 = GetFromClient(serverSocket) as String?
@@ -270,13 +271,8 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                y1 = flat.getCoordinates()?.y.toString()
-            }
+
             var area1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять площадь квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Площадь: ")
                     area1 = GetFromClient(serverSocket) as String?
@@ -287,13 +283,8 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                area1 = flat.getArea().toString()
-            }
             var numberOfRooms1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять количество комнат?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
+
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Количество комнат: ")
                     println()
@@ -305,13 +296,9 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                numberOfRooms1 = flat.getNumberOfRooms().toString()
-            }
+
             var price1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять цену квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
+
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Цена: ")
                     price1 = GetFromClient(serverSocket) as String?
@@ -322,13 +309,7 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                price1 = flat.getPrice().toString()
-            }
             var furnish1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять состояние квартиры?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Предоставленное состояние квартиры: ")
                     furnish1 = GetFromClient(serverSocket) as String?
@@ -339,13 +320,8 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                furnish1 = flat.getFurnish().toString()
-            }
             var view1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять как выглядит квартира?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
+
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Какой вид из окна: ")
                     view1 = GetFromClient(serverSocket) as String?
@@ -356,13 +332,7 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                furnish1 = flat.getFurnish().toString()
-            }
             var houseName1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять название дома?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Какое название дома:")
                     houseName1 = GetFromClient(serverSocket) as String?
@@ -373,13 +343,7 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                houseName1 = flat.getHouse()?.getHouseName().toString()
-            }
             var year1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять год создания дома?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Год постройки дома: ")
                     year1 = GetFromClient(serverSocket) as String?
@@ -390,13 +354,7 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                year1 = flat.getHouse()?.getHouseYear().toString()
-            }
             var numberOfFloors1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Хотите ли вы поменять количество этажей дома?(True/False)")
-            answer = GetFromClient(serverSocket) as String?
-            if (answer.toBoolean()) {
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Количество этажей дома: ")
                     year1 = GetFromClient(serverSocket) as String?
@@ -407,27 +365,13 @@ class CollectionManager:WorkWithClient() {
                         flag = false
                     }
                 } while (flag)
-            } else {
-                numberOfFloors1 = flat.getHouse()?.getHouseNumberOfFloors().toString()
+
+            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1';"
+            if (connection != null) {
+                UpdateDB(info, connection)
             }
-            var flatnew: Flat = Flat(
-                id1!!.toLong(),
-                name1!!,
-                x1!!.toInt(),
-                y1!!.toInt(),
-                area1!!.toDouble(),
-                numberOfRooms1!!.toLong(),
-                price1!!.toLong(),
-                furnish(furnish1!!),
-                view(view1!!)!!,
-                houseName1!!,
-                year1!!.toInt(),
-                numberOfFloors1!!.toInt()
-            )
-            return flatnew
         } catch (ex: ArrayIndexOutOfBoundsException) {
             Send2Client(serverSocket, senderAddress, senderPort, "Не правильно введенное количество этажей дома.")
-            return flat
         }
     }
     /**
@@ -435,18 +379,17 @@ class CollectionManager:WorkWithClient() {
      * @param float имя элемента коллекции
      */
     fun remove_greater(float: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-
-        if (Flats!!.size != 0) {
-            val beginSize = Flats!!.size
-            for (i in Flats!!) {
-                if (i.getName() == float) {
-                    max = i.getArea()
-                    break
-                }
-            }
-            Flats?.stream()?.filter { p -> p.getArea()!! > max!! }?.forEach { p -> Flats?.remove(p) }//Лямбда выражение
-            Send2Client(serverSocket, senderAddress, senderPort, "Из коллекции удалено \" + (beginSize - Flats!!.size) + \" элементов.")
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        if (connection != null) {
+            delInDB("DELETE FLATS WHERE AREA > $float;", connection)
+            Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
+
+
     }
     /**
      * Функция получения времени создания коллекции
@@ -458,169 +401,53 @@ class CollectionManager:WorkWithClient() {
      * Функция вывода содержимого коллекции
      */
     fun show(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var info:String? = ""
-        for (i in Flats!!) {
-            info += i.show()
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        var rs = getData("SELECT * FROM FLATS;", connection)
+        var info = ""
+        while (rs?.next() == true) {
+            info+="FLAT_ID = ${rs.getString("FLAT_ID")}, FLAT_NAME = '${rs.getString("FLAT_NAME")}', COORiNATE_X = ${rs.getString("COORiNATE_X")}, COORDINATE_Y = ${rs.getString("COORDINATE_Y")}, CREATION_DATE = '${rs.getString("CREATION_DATE")}', AREA = ${rs.getString("AREA")}, NUMBER_OF_ROOMS = ${rs.getString("NUMBER_OF_ROOMS")}, PRICE = ${rs.getString("PRICE")}, FURNISH = '${rs.getString("FURNISH")}', VIEW = '${rs.getString("VIEW")}', HOUSE = '${rs.getString("HOUSE")}'\n"
         }
-        if (Flats!!.size == 0) {
-            Send2Client(serverSocket, senderAddress, senderPort, "Коллекция пуста.")
-            println("Коллекция пуста.")
-        }
-        if (info != null) {
-            Send2Client(serverSocket, senderAddress, senderPort, info)
-        }
+        Send2Client(serverSocket, senderAddress, senderPort, info)
     }
     /**
      * Функция очистки коллекции
      */
     fun clear(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Flats!!.clear()
-        Send2Client(serverSocket, senderAddress, senderPort, "Коллекция очищена.")
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        if (connection != null) {
+            delInDB("DELETE FLATS;", connection)
+            Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
+        }
+
     }
     /**
      * Функция удаления элемент по Id
      * @param id
      */
     fun remove_by_id(id: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var flag = false
-        try {
-            Flats?.stream()?.filter { p->p.getId().toString()==id }?.forEach { p->Flats?.remove(p) }
-            for (i in Flats!!) {
-                if (i.getId().toString() == id) {
-                    Flats!!.remove(i)
-                    Send2Client(serverSocket, senderAddress, senderPort, "Был успешно удалён элемент с индексом $id")
-                    flag = true
-                    break
-                }
-            }
-            if (!flag) {
-                Send2Client(serverSocket, senderAddress, senderPort, "Нет такого элемента с id $id")
-            }
-        } catch (ex: ArrayIndexOutOfBoundsException) {
-            Send2Client(serverSocket, senderAddress, senderPort, "Ошибка переполнения индекса")
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        if (connection != null) {
+            delInDB("DELETE FLATS WHERE FLAT_ID=$id;", connection)
+            Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
     }
     /**
      * Функция загрузки Json файла с коллекцией элементов
      * @param CollactionPath
      */
-    fun load(CollactionPath: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        try {
-            val file = File(CollactionPath)
-            val `is`: InputStream = FileInputStream(file)
-            val bis = BufferedInputStream(`is`)
-            var word: String? = ""
-            var last: Char? = null
-            var l = 0
-            var flag = true
-            var name1: String = ""
-            var x1: String = ""
-            var y1: String = ""
-            var area1: String = ""
-            var numberOfRooms1: String = ""
-            var price1: String = ""
-            var furnish1: String = ""
-            var view: String = ""
-            var housename1: String = ""
-            var houseyear1: String = ""
-            var kol = 0
-            var first = true
-            while (l != 74) {
 
-                flag = true
-                kol = 0
-                while (flag) {
-                    last = bis.read().toChar()
-                    if (last == '\"') {
-                        kol++
-                        if (kol == 2) {
-                            flag = !flag
-                        }
-                    } else if (kol == 1) {
-                        word += last
-                    }
-                }
-                if (first) {
-                    word = ""
-                    first = !first
-                }
-                if (word != "") {
-                    l++
-                    if (l % 25 == 0) {
-                        l++
-                    }
-                    flag = !flag
-                    when (l % 25) {
-                        1 -> word = ""
-                        2 -> {
-                            name1 = word!!
-                        }
-                        3 -> word = ""
-                        4 -> word = ""
-                        5 -> {
-                            x1 = word!!
-                        }
-                        6 -> word = ""
-                        7 -> {
-                            y1 = word!!
-                        }
-                        8 -> word = ""
-                        9 -> {
-                            area1 = word!!
-                        }
-                        10 -> word = ""
-                        11 -> {
-                            numberOfRooms1 = word!!
-                        }
-                        12 -> word = ""
-                        13 -> {
-                            price1 = word!!
-                        }
-                        14 -> word = ""
-                        15 -> {
-                            furnish1 = word!!
-                        }
-                        16 -> word = ""
-                        17 -> {
-                            view = word!!
-                        }
-                        18 -> word = ""
-                        19 -> word = ""
-                        20 -> {
-                            housename1 = word!!
-                        }
-                        21 -> word = ""
-                        22 -> {
-                            houseyear1 = word!!
-                        }
-                        23 -> word = ""
-                        24 -> {
-                            var numberOfFloors1 = word
-                            var flat1: Flat = Flat(
-                                Flats?.size!!.toLong() + 1,
-                                name1,
-                                x1.toInt(),
-                                y1.toInt(),
-                                area1.toDouble(),
-                                numberOfRooms1.toLong(),
-                                price1.toLong(),
-                                furnish(furnish1),
-                                view(view)!!,
-                                housename1,
-                                houseyear1.toInt(),
-                                numberOfFloors1!!.toInt()
-                            )
-                            Flats!!.add(flat1)
-                        }
-                    }
-                }
-            }
-            Send2Client(serverSocket, senderAddress, senderPort, "Загрузка совершилась с успехом.")
-        } catch (ex: IOException) {
-            Send2Client(serverSocket, senderAddress, senderPort, "Нет такого файла.")
-        }
-
-    }
     /**
      * Функция вывода доступной информации
      */
@@ -640,50 +467,7 @@ class CollectionManager:WorkWithClient() {
      * Функция сохранения информации в файл
      * @param FileName имф файла для сохранения
      */
-    fun save(FileName: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var file = File("$FileName.txt")
-        file.createNewFile()
-        val writer = FileWriter(file)
-        writer.write(
-            "{\n" +
-                    "  \"Flats\":["
-        )
-        var l = 0
-        for (i in Flats!!) {
-            l++
-            writer.write(
-                "{\n" +
-                        "      \"name\": \"${i.getName()}\",\n" +
-                        "      \"Cooridanates\": {\n" +
-                        "        \"x\": \"${i.getCoordinates()?.x}\",\n" +
-                        "        \"y\": \"${i.getCoordinates()?.y}\"\n" +
-                        "      },\n" +
-                        "      \"area\": \"${i.getArea()}\",\n" +
-                        "      \"numberOfRooms\": \"${i.getNumberOfRooms()}\",\n" +
-                        "      \"price\": \"${i.getPrice()}\",\n" +
-                        "      \"furnish\": \"${i.getFurnish()}\",\n" +
-                        "      \"view\": \"${i.getView()}\",\n" +
-                        "      \"house\":{\n" +
-                        "        \"name\": \"${i.getHouse()?.name}\",\n" +
-                        "        \"year\": \"${i.getHouse()?.year}\",\n" +
-                        "        \"numberOfFloors\": \"${i.getHouse()?.year}\"\n" +
-                        "      }\n" +
-                        "    }"
-            )
-            if (l != Flats!!.size) {
-                writer.write(",\n")
-            } else {
-                writer.write("\n")
-            }
-        }
-        writer.write(
-            "   ]\n" +
-                    "}"
-        )
-        writer.flush()
-        writer.close()
-        Send2Client(serverSocket, senderAddress, senderPort, ("Сохранено. Сохранение находится в " + file.path))
-    }
+
     /**
      * Функция вывода hashCode
      */
@@ -694,29 +478,18 @@ class CollectionManager:WorkWithClient() {
      * Функция обновления данных об элементе коллекции
      * @param EnterFlat имя изменяемого элемента
      */
-    fun update(EnterFlat: String?,  serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var flag = false
-        for (i in Flats!!) {
-            if (i.getName() == EnterFlat) {
-                var newFlat = update(i,  serverSocket, senderAddress, senderPort)
-                Flats!!.remove(i)
-                Flats!!.add(newFlat)
-                flag = true
-                Send2Client(serverSocket, senderAddress, senderPort, ("Обновление было успешно."))
-                println("Обновление было успешно.")
-                break
-            }
-        }
-        if (flag) {
-            println("Не существует такая квартира")
-        }
-    }
+
     /**
      * Функция добавления элемента в случае превосходства
      */
 
     fun add_if_max(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
         try {
+            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+            var Login = GetFromClient(serverSocket)
+            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+            var password = GetFromClient(serverSocket)
+            var connection: Connection? = getDBConnection(Login, password)
             var flag = true
             var name1: String? = null
             do {
@@ -730,7 +503,13 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var id1: Int? = Flats?.size?.plus(1)
+            var id1: Int? =null
+            if(getData("SELECT MAX('flat_id') FROM Flats;", connection!!)?.getInt("flat_id")!=null) {
+                id1 = getData("SELECT MAX('flat_id') FROM Flats;", connection!!)?.getInt("flat_id")?.plus(1)
+            }
+            else{
+                id1=1
+            }
             var x1: Int? = null
             do {
                 Send2Client(serverSocket, senderAddress, senderPort, "Координата X:")
@@ -842,21 +621,17 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var flatnew: Flat = Flat(
-                id1!!.toLong(), name1!!,
-                x1!!, y1!!, area1!!, numberOfRooms1!!, price1!!, furnish(furnish1!!),
-                view(view1!!)!!, houseName1!!, year1!!, numberOfFloors1!!
-            )
-            var fl = true
-            for (i in Flats!!) {
-                if (i.getArea()!! > flatnew.getArea()!!) {
-                    fl = false
-                    println("Он не оказался превосходящим площади.")
+            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1';"
+            var max = getData("SELECT MAX(AREA) FROM FLAT;", connection)?.getString("AREA")
+
+            if (max != null) {
+                if (max< area1.toString()) {
+                    if (connection != null) {
+                        insertIntoDB(info, connection)
+                        println("Элемент успешно добавлен.")
+                    }
+
                 }
-            }
-            if (fl) {
-                Flats?.add(flatnew)
-                println("Элемент успешно добавлен.")
             }
         } catch (ex: ArrayIndexOutOfBoundsException) {
             println("Ошибка переполнения коллекции")
@@ -864,30 +639,29 @@ class CollectionManager:WorkWithClient() {
     }
 
     fun remove_all_by_house(houseName: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var size = Flats?.size
-        for (i in Flats!!) {
-            if (i.getHouse()?.getHouseName() == houseName) {
-                Flats!!.remove(i)
-            }
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        var info ="DELETE FLATS WHERE HOUSE = '$houseName';"
+        if (connection != null) {
+            delInDB(info, connection)
         }
-        if (size != null) {
-            size = size - Flats!!.size
-        }
-        Send2Client(serverSocket, senderAddress, senderPort, "Было удалено $size элементов")
+        Send2Client(serverSocket, senderAddress, senderPort, "Было удалено успешно")
     }
 
     fun remove_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        var size = Flats?.size
-        for (i in Flats!!) {
-            if (i.getName() == name) {
-                Flats!!.remove(i)
-            }
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
+        if (connection != null) {
+            delInDB(info, connection)
         }
-        if (size != null) {
-            size = size - Flats!!.size
-        }
-        Send2Client(serverSocket, senderAddress, senderPort, "Было удалено $size элементов")
-        println("")
+        Send2Client(serverSocket, senderAddress, senderPort, "Было удалено успешно")
 
     }
     /**
@@ -895,21 +669,32 @@ class CollectionManager:WorkWithClient() {
      * @param name имя дома нужного элемента
      */
     fun filter_less_than_house(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        for (i in Flats!!) {
-            if (i.getHouse()?.getHouseName() == name) {
-                Flats!!.remove(i)
-            }
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
+        if (connection != null) {
+            delInDB(info, connection)
         }
+        Send2Client(serverSocket, senderAddress, senderPort, "Было удалено успешно")
     }
     /**
      * Функция вывода информации об элементе с определенным именем
      * @param name имя изменяемого элемента
      */
     fun filter_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        for (i in Flats!!) {
-            if (i.getName() == name) {
-                Flats!!.remove(i)
-            }
+        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
+        var Login = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var password = GetFromClient(serverSocket)
+        var connection: Connection? = getDBConnection(Login, password)
+        var rs = getData("SELECT * FROM FLATS WHERE ;", connection)
+        var info = ""
+        while (rs?.next() == true) {
+            info+="FLAT_ID = ${rs.getString("FLAT_ID")}, FLAT_NAME = '${rs.getString("FLAT_NAME")}', COORDINATES_X = ${rs.getString("COORDINATES_X")}, COORDINATES_Y = ${rs.getString("COORDINATES_Y")}, CREATION_DATE = '${rs.getString("CREATION_DATE")}', AREA = ${rs.getString("AREA")}, NUMBER_OF_ROOMS = ${rs.getString("NUMBER_OF_ROOMS")}, PRICE = ${rs.getString("PRICE")}, FURNISH = '${rs.getString("FURNISH")}', VIEW = '${rs.getString("VIEW")}', HOUSE = '${rs.getString("HOUSE")}'\n"
         }
+        Send2Client(serverSocket, senderAddress, senderPort, info)
     }
 }

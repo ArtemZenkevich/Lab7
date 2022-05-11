@@ -50,12 +50,6 @@ class Commander :WorkWithClient(){
             historycontrol()
             try {
                 when (first_word) {
-                    "save" -> {
-                        manager?.save(second_word, serverSocket, senderAddress, senderPort)
-                    }
-                    "update" -> {
-                        manager?.update(second_word, serverSocket, senderAddress, senderPort)
-                    }
                     "remove_by_id" -> {
                         manager?.remove_by_id(second_word, serverSocket, senderAddress, senderPort)
                     }
@@ -72,10 +66,7 @@ class Commander :WorkWithClient(){
                         manager?.clear(serverSocket, senderAddress, senderPort)
                     }
                     "info" -> {
-                        System.out.println("Тип: PriorityQueue<Flat>, время создания:" + manager!!.getTime() + ", количество элементов:" + manager!!.getSize())
-                    }
-                    "load" -> {
-                        manager?.load(second_word, serverSocket, senderAddress, senderPort)
+                        System.out.println("Тип: PriorityQueue<Flat>, время создания:" + manager!!.getTime())
                     }
                     "add_if_max" -> {
                         manager?.add_if_max(serverSocket, senderAddress, senderPort)

@@ -1,12 +1,13 @@
+import src.main.kotlin.Server.MainLog.SQLConnection
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.SocketException
+import java.sql.SQLException
 import java.util.*
-import java.util.regex.Matcher
 import java.util.regex.Pattern
-import kotlin.test.DefaultAsserter.assertEquals
+
 
 object UDPClient {
     /* Порт сервера, к которому собирается
@@ -25,12 +26,11 @@ object UDPClient {
             var sendingDataBuffer = ByteArray(10000)
             var receivingDataBuffer = ByteArray(10000)
         try {
-            line= scanner.nextLine()
+            line= scanner.nextLine().toString()
             if (line=="exit"){
                 break
             }
-            sendingDataBuffer = line.toString().toByteArray()
-
+                sendingDataBuffer = line.toString().toByteArray()
             // Создайте UDP-пакет
             val sendingPacket = DatagramPacket(sendingDataBuffer, sendingDataBuffer.size, AddressIP, SERVICE_PORT)
             // Отправьте UDP-пакет серверу
@@ -59,4 +59,6 @@ object UDPClient {
         }
         return end!!
     }
+
+
 }

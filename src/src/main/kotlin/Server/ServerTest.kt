@@ -16,6 +16,7 @@ object UDPServer {
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>){
+        var first = true
                 try{
                 /* Создайте буферы для хранения отправляемых и получаемых данных.
 Они временно хранят данные в случае задержек связи */
@@ -40,8 +41,12 @@ object UDPServer {
                     //Начало основной логики работы
                     val senderAddress = inputPacket.address
                     val senderPort = inputPacket.port
-
-                    commander.interactiveMod(massage, serverSocket, senderAddress, senderPort)
+                    if (first){
+                     if (massage.endsWith(""))
+                    }
+                    else {
+                        commander.interactiveMod(massage, serverSocket, senderAddress, senderPort)
+                    }
  /*                   sendingDataBuffer = receivedData.toByteArray()
 
                     // Создайте новый UDP-пакет с данными, чтобы отправить их клиенту

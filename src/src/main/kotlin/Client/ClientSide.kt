@@ -22,6 +22,9 @@ object UDPClient {
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
+        var LogIn= false;
+        var first= true;
+        println("Do you want logIn or authorization?")
         while (true) {
             var sendingDataBuffer = ByteArray(10000)
             var receivingDataBuffer = ByteArray(10000)
@@ -29,6 +32,14 @@ object UDPClient {
             line= scanner.nextLine().toString()
             if (line=="exit"){
                 break
+            }
+            if (first && !LogIn){
+                line+="--LogIn--"
+                first=false
+            }
+            else if(first && LogIn){
+                line+="--Auth--"
+                first=false
             }
                 sendingDataBuffer = line.toString().toByteArray()
             // Создайте UDP-пакет

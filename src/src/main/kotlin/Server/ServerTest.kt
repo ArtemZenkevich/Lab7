@@ -18,12 +18,7 @@ object UDPServer {
     fun main(args: Array<String>){
         var first = true
                 try{
-                /* Создайте буферы для хранения отправляемых и получаемых данных.
-Они временно хранят данные в случае задержек связи */
-
-
                 /* Создайте экземпляр UDP-пакета для хранения клиентских данных с использованием буфера для полученных данных */
-
                 println("Waiting for a client to connect...")
                 /** Поле инициализации класса @see commander */
                 val commander = Commander()
@@ -42,7 +37,12 @@ object UDPServer {
                     val senderAddress = inputPacket.address
                     val senderPort = inputPacket.port
                     if (first){
-                     if (massage.endsWith(""))
+                     if (massage.endsWith("logIn")){
+                        commander.logInMod(serverSocket, senderAddress, senderPort)
+                     }
+                     else{
+                         commander.authuorizeMod(serverSocket, senderAddress, senderPort)
+                     }
                     }
                     else {
                         commander.interactiveMod(massage, serverSocket, senderAddress, senderPort)

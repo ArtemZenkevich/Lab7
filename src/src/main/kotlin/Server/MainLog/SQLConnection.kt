@@ -7,7 +7,9 @@ import java.sql.SQLException
 
 
 open abstract class SQLConnection {
-     fun getDBConnection(DB_USER: String?, DB_PASSWORD: String?): Connection? {
+    val DB_USER: String? = "s333116"
+    val DB_PASSWORD: String? = "gqp064"
+     fun getDBConnection(): Connection? {
         var dbConnection: Connection? = null
         try {
             val DB_DRIVER ="org.postgresql.Driver"

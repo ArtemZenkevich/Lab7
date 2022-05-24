@@ -65,11 +65,7 @@ class CollectionManager:WorkWithClient() {
      */
     fun add(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int){
         try {
-            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-            var Login = GetFromClient(serverSocket)
-            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-            var password = GetFromClient(serverSocket)
-            var connection: Connection? = getDBConnection(Login, password)
+            var connection: Connection? = getDBConnection()
             var flag = true
             var name1: String? = null
             do {
@@ -224,11 +220,7 @@ class CollectionManager:WorkWithClient() {
             var flag = true
             var answer: String? = null
             var name1: String? = null
-            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-            var Login = GetFromClient(serverSocket)
-            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-            var password = GetFromClient(serverSocket)
-            var connection: Connection? = getDBConnection(Login, password)
+            var connection: Connection? = getDBConnection()
                 do {
                     Send2Client(serverSocket, senderAddress, senderPort, "Название:")
                     name1 = GetFromClient(serverSocket) as String?
@@ -379,11 +371,8 @@ class CollectionManager:WorkWithClient() {
      * @param float имя элемента коллекции
      */
     fun remove_greater(float: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+
+        var connection: Connection? = getDBConnection()
         if (connection != null) {
             delInDB("DELETE FLATS WHERE AREA > $float;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
@@ -401,11 +390,7 @@ class CollectionManager:WorkWithClient() {
      * Функция вывода содержимого коллекции
      */
     fun show(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         var rs = getData("SELECT * FROM FLATS;", connection)
         var info = ""
         while (rs?.next() == true) {
@@ -417,11 +402,7 @@ class CollectionManager:WorkWithClient() {
      * Функция очистки коллекции
      */
     fun clear(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         if (connection != null) {
             delInDB("DELETE FLATS;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
@@ -433,11 +414,7 @@ class CollectionManager:WorkWithClient() {
      * @param id
      */
     fun remove_by_id(id: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         if (connection != null) {
             delInDB("DELETE FLATS WHERE FLAT_ID=$id;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
@@ -485,11 +462,7 @@ class CollectionManager:WorkWithClient() {
 
     fun add_if_max(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
         try {
-            Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-            var Login = GetFromClient(serverSocket)
-            Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-            var password = GetFromClient(serverSocket)
-            var connection: Connection? = getDBConnection(Login, password)
+            var connection: Connection? = getDBConnection()
             var flag = true
             var name1: String? = null
             do {
@@ -639,11 +612,7 @@ class CollectionManager:WorkWithClient() {
     }
 
     fun remove_all_by_house(houseName: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         var info ="DELETE FLATS WHERE HOUSE = '$houseName';"
         if (connection != null) {
             delInDB(info, connection)
@@ -652,11 +621,7 @@ class CollectionManager:WorkWithClient() {
     }
 
     fun remove_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
         if (connection != null) {
             delInDB(info, connection)
@@ -669,11 +634,7 @@ class CollectionManager:WorkWithClient() {
      * @param name имя дома нужного элемента
      */
     fun filter_less_than_house(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
+        var connection: Connection? = getDBConnection()
         var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
         if (connection != null) {
             delInDB(info, connection)
@@ -685,12 +646,8 @@ class CollectionManager:WorkWithClient() {
      * @param name имя изменяемого элемента
      */
     fun filter_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
-        Send2Client(serverSocket, senderAddress, senderPort, "Login:")
-        var Login = GetFromClient(serverSocket)
-        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var password = GetFromClient(serverSocket)
-        var connection: Connection? = getDBConnection(Login, password)
-        var rs = getData("SELECT * FROM FLATS WHERE ;", connection)
+        var connection: Connection? = getDBConnection()
+        var rs = getData("SELECT * FROM FLATS WHERE FLAT_NAME='$name';", connection)
         var info = ""
         while (rs?.next() == true) {
             info+="FLAT_ID = ${rs.getString("FLAT_ID")}, FLAT_NAME = '${rs.getString("FLAT_NAME")}', COORDINATES_X = ${rs.getString("COORDINATES_X")}, COORDINATES_Y = ${rs.getString("COORDINATES_Y")}, CREATION_DATE = '${rs.getString("CREATION_DATE")}', AREA = ${rs.getString("AREA")}, NUMBER_OF_ROOMS = ${rs.getString("NUMBER_OF_ROOMS")}, PRICE = ${rs.getString("PRICE")}, FURNISH = '${rs.getString("FURNISH")}', VIEW = '${rs.getString("VIEW")}', HOUSE = '${rs.getString("HOUSE")}'\n"

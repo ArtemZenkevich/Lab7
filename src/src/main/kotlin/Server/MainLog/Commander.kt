@@ -1,4 +1,5 @@
 import src.main.kotlin.Server.MainLog.WorkWithClient
+import sun.security.util.Password
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -101,6 +102,37 @@ class Commander :WorkWithClient(){
             }
 
 
+    }
+    fun logInMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ){
+        var connection = getDBConnection()
+        Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
+        var surname = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var Password = GetFromClient(serverSocket)
+        var id = getData("SELECT COUNT(USER_ID) FROM USERS", connection)?.getInt(0)?.plus(1)
+        if (connection != null) {
+            insertIntoDB("INSERT INTO USERS VALUES($id, '$surname', $Password);", connection)
+        }
+    }
+    fun authuorizeMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ){
+        Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
+        var surname = GetFromClient(serverSocket)
+        Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+        var Password = GetFromClient(serverSocket)
+        var res = getData("SELECT * WHERE USER_NAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
+        if (res != null) {
+            Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались.")
+        }else{
+            while(res == null) {
+                Send2Client(serverSocket, senderAddress, senderPort, "Неверное имя или пароль." +
+                        "Surname:")
+                var surname = GetFromClient(serverSocket)
+                Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+                var Password = GetFromClient(serverSocket)
+                res = getData("SELECT * WHERE USER_NAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
+            }
+            Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались.")
+            }
     }
     /**
      * Функция взаимодействия с историей команд

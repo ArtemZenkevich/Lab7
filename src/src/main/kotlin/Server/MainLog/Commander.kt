@@ -103,35 +103,68 @@ class Commander :WorkWithClient(){
 
 
     }
-    fun logInMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ){
+    fun logInMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ): Int? {
         var connection = getDBConnection()
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
         Send2Client(serverSocket, senderAddress, senderPort, "Password:")
         var Password = GetFromClient(serverSocket)
-        var id = getData("SELECT COUNT(USER_ID) FROM USERS", connection)?.getInt(0)?.plus(1)
-        if (connection != null) {
-            insertIntoDB("INSERT INTO USERS VALUES($id, '$surname', $Password);", connection)
+        var res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
+        var id = getData("SELECT * FROM PERSON;", connection)?.let { getMaxId(it) }?.plus(1)
+        if (res?.next() == false) {
+            if (connection != null) {
+                insertIntoDB("INSERT INTO PERSON VALUES($id, '$surname', '$Password');", connection)
+                Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались $surname.")
+                return id.toString().toInt()
+            }
         }
+        else{
+            while(res?.next() == true) {
+                Send2Client(
+                    serverSocket, senderAddress, senderPort, "Уже существует $surname. Попробуйте снова.\n" +
+                            "Surname:"
+                )
+                var surname = GetFromClient(serverSocket)
+                Send2Client(serverSocket, senderAddress, senderPort, "Password:")
+                var Password = GetFromClient(serverSocket)
+                var res = getData("SELECT * FROM PERSON WHERE username = '$surname';", connection)
+                var id = getData("SELECT COUNT(USER_ID) FROM PERSON;", connection)?.getInt("count")?.plus(1)
+                if (res?.next() == true) {
+                    if (connection != null) {
+                        insertIntoDB("INSERT INTO PERSON VALUES($id, '$surname', '$Password');", connection)
+                        Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались $surname.")
+                        return id
+                    }
+                }
+            }
+        }
+        return id.toString().toInt()
     }
-    fun authuorizeMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ){
+    fun authuorizeMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int): Int{
+        var id:Int =0
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
         Send2Client(serverSocket, senderAddress, senderPort, "Password:")
         var Password = GetFromClient(serverSocket)
-        var res = getData("SELECT * WHERE USER_NAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
-        if (res != null) {
+        var res = getData("SELECT * FROM PERSON WHERE USERNAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
+        if (res?.next() == true) {
             Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались.")
+            id = res.getInt("USER_ID")
+            return id
         }else{
-            while(res == null) {
-                Send2Client(serverSocket, senderAddress, senderPort, "Неверное имя или пароль." +
+
+            while(res?.next() == false) {
+                Send2Client(serverSocket, senderAddress, senderPort, "Неверное имя или пароль.\n" +
                         "Surname:")
                 var surname = GetFromClient(serverSocket)
                 Send2Client(serverSocket, senderAddress, senderPort, "Password:")
                 var Password = GetFromClient(serverSocket)
                 res = getData("SELECT * WHERE USER_NAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
+
             }
             Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались.")
+            id = res?.getInt("USER_ID")!!
+            return id
             }
     }
     /**

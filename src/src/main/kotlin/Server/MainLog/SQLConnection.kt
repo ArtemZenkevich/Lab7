@@ -7,8 +7,8 @@ import java.sql.SQLException
 
 
 open abstract class SQLConnection {
-    val DB_USER: String? = "s333116"
-    val DB_PASSWORD: String? = "gqp064"
+    val DB_USER: String? = "postgres"
+    val DB_PASSWORD: String? = "password"
      fun getDBConnection(): Connection? {
         var dbConnection: Connection? = null
         try {
@@ -24,6 +24,13 @@ open abstract class SQLConnection {
             println(e.message)
         }
         return dbConnection
+    }
+    fun getMaxId(res:ResultSet):Int? {
+        var id = 0
+        while (res.next()) {
+            id = res.getInt("USER_ID")
+        }
+        return id
     }
     fun insertIntoDB(info:String, connection: Connection){
         try {

@@ -1,4 +1,5 @@
 import src.main.kotlin.Server.MainLog.WorkWithClient
+import src.main.kotlin.Server.MainLog.md5Custom
 import sun.security.util.Password
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -41,7 +42,7 @@ class Commander :WorkWithClient(){
     /**
      * Функция активирования интерактивного режима взаимодействия с коллекцией
      */
-    fun interactiveMod(commandReader:String, serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ) {
+    fun interactiveMod(commandReader:String, serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
             var userCommand: String? = null
             userCommand = commandReader
             finalUserCommand = userCommand?.trim().toString()
@@ -52,40 +53,40 @@ class Commander :WorkWithClient(){
             try {
                 when (first_word) {
                     "remove_by_id" -> {
-                        manager?.remove_by_id(second_word, serverSocket, senderAddress, senderPort)
+                        manager?.remove_by_id(second_word, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "add" -> {
-                        manager?.add(serverSocket, senderAddress, senderPort)
+                        manager?.add(serverSocket, senderAddress, senderPort, user_id)
                     }
                     "remove_greater" -> {
-                        manager?.remove_greater(second_word, serverSocket, senderAddress, senderPort)
+                        manager?.remove_greater(second_word, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "show" -> {
-                        manager?.show(serverSocket, senderAddress, senderPort)
+                        manager?.show(serverSocket, senderAddress, senderPort, user_id)
                     }
                     "clear" -> {
-                        manager?.clear(serverSocket, senderAddress, senderPort)
+                        manager?.clear(serverSocket, senderAddress, senderPort, user_id)
                     }
                     "info" -> {
                         System.out.println("Тип: PriorityQueue<Flat>, время создания:" + manager!!.getTime())
                     }
                     "add_if_max" -> {
-                        manager?.add_if_max(serverSocket, senderAddress, senderPort)
+                        manager?.add_if_max(serverSocket, senderAddress, senderPort, user_id)
                     }
                     "help" -> {
                         manager?.help(serverSocket, senderAddress, senderPort)
                     }
                     "remove_all_by_house" -> {
-                        manager?.remove_all_by_house(second_word!!, serverSocket, senderAddress, senderPort)
+                        manager?.remove_all_by_house(second_word!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "remove_contains_name" -> {
-                        manager?.remove_contains_name(second_word!!, serverSocket, senderAddress, senderPort)
+                        manager?.remove_contains_name(second_word!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "filter_contains_name" -> {
-                        manager?.filter_contains_name(second_word!!, serverSocket, senderAddress, senderPort)
+                        manager?.filter_contains_name(second_word!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "filter_less_than_house" -> {
-                        manager?.filter_less_than_house(second_word!!, serverSocket, senderAddress, senderPort)
+                        manager?.filter_less_than_house(second_word!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "exit" -> {
                     }
@@ -108,7 +109,7 @@ class Commander :WorkWithClient(){
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
         Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var Password = GetFromClient(serverSocket)
+        var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
         var res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
         var id = getData("SELECT * FROM PERSON;", connection)?.let { getMaxId(it) }?.plus(1)
         if (res?.next() == false) {
@@ -119,6 +120,7 @@ class Commander :WorkWithClient(){
             }
         }
         else{
+            res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
             while(res?.next() == true) {
                 Send2Client(
                     serverSocket, senderAddress, senderPort, "Уже существует $surname. Попробуйте снова.\n" +
@@ -126,9 +128,9 @@ class Commander :WorkWithClient(){
                 )
                 var surname = GetFromClient(serverSocket)
                 Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-                var Password = GetFromClient(serverSocket)
-                var res = getData("SELECT * FROM PERSON WHERE username = '$surname';", connection)
-                var id = getData("SELECT COUNT(USER_ID) FROM PERSON;", connection)?.getInt("count")?.plus(1)
+                var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
+                var res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
+                var id = getData("SELECT * FROM PERSON;", connection)?.let { getMaxId(it) }?.plus(1)
                 if (res?.next() == true) {
                     if (connection != null) {
                         insertIntoDB("INSERT INTO PERSON VALUES($id, '$surname', '$Password');", connection)
@@ -145,7 +147,7 @@ class Commander :WorkWithClient(){
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
         Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-        var Password = GetFromClient(serverSocket)
+        var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
         var res = getData("SELECT * FROM PERSON WHERE USERNAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
         if (res?.next() == true) {
             Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались.")
@@ -158,7 +160,7 @@ class Commander :WorkWithClient(){
                         "Surname:")
                 var surname = GetFromClient(serverSocket)
                 Send2Client(serverSocket, senderAddress, senderPort, "Password:")
-                var Password = GetFromClient(serverSocket)
+                var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
                 res = getData("SELECT * WHERE USER_NAME='$surname' AND USER_PASSWORD='$Password'", getDBConnection())
 
             }

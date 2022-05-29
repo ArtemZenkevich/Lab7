@@ -63,7 +63,7 @@ class CollectionManager:WorkWithClient() {
     /**
      * Функция добавления элементов коллекции
      */
-    fun add(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int){
+    fun add(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int){
         try {
             var connection: Connection? = getDBConnection()
             var flag = true
@@ -194,7 +194,7 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var info1 = "INSERT INTO Flats VALUES($id1, '$name1', $x1, $y1, '$time', $area1, $numberOfFloors1, $price1, '$furnish1', '$view1', '$houseName1');"
+            var info1 = "INSERT INTO Flats VALUES($id1, '$name1', $x1, $y1, '$time', $area1, $numberOfFloors1, $price1, '$furnish1', '$view1', '$houseName1', $user_id);"
             var id_house: Int? = 1
             var rl = getData("SELECT * FROM FLATS;", connection)
             while (rs?.next() == true) {
@@ -215,7 +215,7 @@ class CollectionManager:WorkWithClient() {
     /**
      * Функция обновления элементов коллекции
      */
-    fun update(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int){
+    fun update(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int){
         try {
             var flag = true
             var answer: String? = null
@@ -358,7 +358,7 @@ class CollectionManager:WorkWithClient() {
                     }
                 } while (flag)
 
-            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1';"
+            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1', USER_ID= $user_id;"
             if (connection != null) {
                 UpdateDB(info, connection)
             }
@@ -370,11 +370,11 @@ class CollectionManager:WorkWithClient() {
      * Функция удаления элементов, превышающее значения элемента параметра
      * @param float имя элемента коллекции
      */
-    fun remove_greater(float: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun remove_greater(float: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
 
         var connection: Connection? = getDBConnection()
         if (connection != null) {
-            delInDB("DELETE FLATS WHERE AREA > $float;", connection)
+            delInDB("DELETE FLATS WHERE AREA > $float AND USER_ID=$user_id;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
 
@@ -389,7 +389,7 @@ class CollectionManager:WorkWithClient() {
     /**
      * Функция вывода содержимого коллекции
      */
-    fun show(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun show(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
         var rs = getData("SELECT * FROM FLATS;", connection)
         var info = ""
@@ -401,10 +401,10 @@ class CollectionManager:WorkWithClient() {
     /**
      * Функция очистки коллекции
      */
-    fun clear(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun clear(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
         if (connection != null) {
-            delInDB("DELETE FLATS;", connection)
+            delInDB("DELETE FROM FLATS WHERE USER_ID = $user_id;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
 
@@ -413,10 +413,10 @@ class CollectionManager:WorkWithClient() {
      * Функция удаления элемент по Id
      * @param id
      */
-    fun remove_by_id(id: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun remove_by_id(id: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
         if (connection != null) {
-            delInDB("DELETE FLATS WHERE FLAT_ID=$id;", connection)
+            delInDB("DELETE FROM FLATS WHERE FLAT_ID=$id AND USER_ID=$user_id;", connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
     }
@@ -460,7 +460,7 @@ class CollectionManager:WorkWithClient() {
      * Функция добавления элемента в случае превосходства
      */
 
-    fun add_if_max(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun add_if_max(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         try {
             var connection: Connection? = getDBConnection()
             var flag = true
@@ -594,7 +594,7 @@ class CollectionManager:WorkWithClient() {
                     flag = false
                 }
             } while (flag)
-            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1';"
+            var info = "UPDATE Flats SET FLAT_ID = $id1, FLAT_NAME = '$name1', COORDINATES_X = $x1, COORDINATES_Y = $x1, CREATION_DATE = '$time', AREA = $area1, NUMBER_OF_ROOMS = $numberOfRooms1, PRICE = $price1, FURNISH = '$furnish1', VIEW = '$view1', HOUSE = '$houseName1', USER_ID = '$user_id';"
             var max = getData("SELECT MAX(AREA) FROM FLAT;", connection)?.getString("AREA")
 
             if (max != null) {
@@ -611,18 +611,18 @@ class CollectionManager:WorkWithClient() {
         }
     }
 
-    fun remove_all_by_house(houseName: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun remove_all_by_house(houseName: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
-        var info ="DELETE FLATS WHERE HOUSE = '$houseName';"
+        var info ="DELETE FROM FLATS WHERE HOUSE = '$houseName' AND USER_ID = '$user_id';"
         if (connection != null) {
             delInDB(info, connection)
         }
         Send2Client(serverSocket, senderAddress, senderPort, "Было удалено успешно")
     }
 
-    fun remove_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun remove_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
-        var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
+        var info ="DELETE FROM FLATS WHERE FLAT_NAME = '$name' AND USER_ID = '$user_id';"
         if (connection != null) {
             delInDB(info, connection)
         }
@@ -633,9 +633,9 @@ class CollectionManager:WorkWithClient() {
      * Функция вывода информации об элементе с определенным домом
      * @param name имя дома нужного элемента
      */
-    fun filter_less_than_house(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun filter_less_than_house(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
-        var info ="DELETE FLATS WHERE FLAT_NAME = '$name';"
+        var info ="DELETE FLATS WHERE FLAT_NAME = '$name' AND USER_ID = '$user_id';"
         if (connection != null) {
             delInDB(info, connection)
         }
@@ -645,9 +645,9 @@ class CollectionManager:WorkWithClient() {
      * Функция вывода информации об элементе с определенным именем
      * @param name имя изменяемого элемента
      */
-    fun filter_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int) {
+    fun filter_contains_name(name: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
-        var rs = getData("SELECT * FROM FLATS WHERE FLAT_NAME='$name';", connection)
+        var rs = getData("SELECT * FROM FLATS WHERE FLAT_NAME='$name' AND USER_ID='$user_id';", connection)
         var info = ""
         while (rs?.next() == true) {
             info+="FLAT_ID = ${rs.getString("FLAT_ID")}, FLAT_NAME = '${rs.getString("FLAT_NAME")}', COORDINATES_X = ${rs.getString("COORDINATES_X")}, COORDINATES_Y = ${rs.getString("COORDINATES_Y")}, CREATION_DATE = '${rs.getString("CREATION_DATE")}', AREA = ${rs.getString("AREA")}, NUMBER_OF_ROOMS = ${rs.getString("NUMBER_OF_ROOMS")}, PRICE = ${rs.getString("PRICE")}, FURNISH = '${rs.getString("FURNISH")}', VIEW = '${rs.getString("VIEW")}', HOUSE = '${rs.getString("HOUSE")}'\n"

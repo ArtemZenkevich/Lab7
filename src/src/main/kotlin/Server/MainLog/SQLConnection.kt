@@ -7,8 +7,8 @@ import java.sql.SQLException
 
 
 open abstract class SQLConnection {
-    val DB_USER: String? = "postgres"
-    val DB_PASSWORD: String? = "password"
+    val DB_USER: String? = "s333116"
+    val DB_PASSWORD: String? = "gqp064"
      fun getDBConnection(): Connection? {
         var dbConnection: Connection? = null
         try {

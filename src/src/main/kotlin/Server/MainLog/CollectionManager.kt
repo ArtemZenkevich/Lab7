@@ -4,6 +4,7 @@ import java.io.*
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.sql.Connection
+import java.sql.PreparedStatement
 import java.util.*
 
 /**
@@ -396,11 +397,17 @@ class CollectionManager:WorkWithClient() {
         while (rs?.next() == true) {
             info+="FLAT_ID = ${rs.getString("FLAT_ID")}, FLAT_NAME = '${rs.getString("FLAT_NAME")}', COORiNATE_X = ${rs.getString("COORiNATE_X")}, COORDINATE_Y = ${rs.getString("COORDINATE_Y")}, CREATION_DATE = '${rs.getString("CREATION_DATE")}', AREA = ${rs.getString("AREA")}, NUMBER_OF_ROOMS = ${rs.getString("NUMBER_OF_ROOMS")}, PRICE = ${rs.getString("PRICE")}, FURNISH = '${rs.getString("FURNISH")}', VIEW = '${rs.getString("VIEW")}', HOUSE = '${rs.getString("HOUSE")}'\n"
         }
+        if(info==""){
+            info ="База данных пуста."
+        }
         Send2Client(serverSocket, senderAddress, senderPort, info)
     }
     /**
      * Функция очистки коллекции
      */
+    fun SendInfo(manager: CollectionManager ,serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int){
+        Send2Client(serverSocket, senderAddress, senderPort, "\"Тип: PriorityQueue<Flat>, время создания:\" + ${manager!!.getTime()}")
+    }
     fun clear(serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
         if (connection != null) {
@@ -413,10 +420,13 @@ class CollectionManager:WorkWithClient() {
      * Функция удаления элемент по Id
      * @param id
      */
-    fun remove_by_id(id: String?, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
+    fun remove_by_id(id: String, serverSocket: DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
         var connection: Connection? = getDBConnection()
         if (connection != null) {
-            delInDB("DELETE FROM FLATS WHERE FLAT_ID=$id AND USER_ID=$user_id;", connection)
+            var query:PreparedStatement? = connection.prepareStatement("DELETE FROM FLATS WHERE FLAT_ID= ? AND USER_ID= ?;")
+            query!!.setInt(1, id.toInt())
+            query!!.setInt(2, user_id.toInt())
+            delInDB(query.toString(), connection)
             Send2Client(serverSocket, senderAddress, senderPort, "Было успешно удалено.")
         }
     }

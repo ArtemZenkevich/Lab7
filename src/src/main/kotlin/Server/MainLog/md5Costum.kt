@@ -23,5 +23,6 @@ fun md5Custom(st: String): String? {
     while (md5Hex.length < 16) {
         md5Hex = "0$md5Hex"
     }
+    md5Hex= md5Hex.substring(0, 16)
     return md5Hex
 }

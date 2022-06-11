@@ -4,6 +4,7 @@ import sun.security.util.Password
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.sql.SQLException
 import java.util.*
 /**
  * Класс реализации логики приказывания команд менеджеру коллекций
@@ -44,6 +45,7 @@ class Commander :WorkWithClient(){
      */
     fun interactiveMod(commandReader:String, serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int, user_id: Int) {
             var userCommand: String? = null
+            println("Начало интерактива.")
             userCommand = commandReader
             finalUserCommand = userCommand?.trim().toString()
             val final: String? = finalUserCommand
@@ -53,7 +55,7 @@ class Commander :WorkWithClient(){
             try {
                 when (first_word) {
                     "remove_by_id" -> {
-                        manager?.remove_by_id(second_word, serverSocket, senderAddress, senderPort, user_id)
+                        manager?.remove_by_id(second_word!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "add" -> {
                         manager?.add(serverSocket, senderAddress, senderPort, user_id)
@@ -68,7 +70,7 @@ class Commander :WorkWithClient(){
                         manager?.clear(serverSocket, senderAddress, senderPort, user_id)
                     }
                     "info" -> {
-                        System.out.println("Тип: PriorityQueue<Flat>, время создания:" + manager!!.getTime())
+                        manager?.SendInfo(manager!!, serverSocket, senderAddress, senderPort, user_id)
                     }
                     "add_if_max" -> {
                         manager?.add_if_max(serverSocket, senderAddress, senderPort, user_id)
@@ -101,22 +103,32 @@ class Commander :WorkWithClient(){
                 Send2Client(serverSocket, senderAddress, senderPort, "Отсутствует аргумент.")
                 System.out.println("Отсутствует аргумент.")
             }
-
+        println("Конец интерактива интерактива.")
 
     }
-    fun logInMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ): Int? {
+    fun logInMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int ): Int {
+        try{
+            MakeNewDB()
+        }catch (e: SQLException) {
+            println(e.message)
+        }
         var connection = getDBConnection()
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
         Send2Client(serverSocket, senderAddress, senderPort, "Password:")
         var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
         var res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
-        var id = getData("SELECT * FROM PERSON;", connection)?.let { getMaxId(it) }?.plus(1)
+        var id1 = getData("SELECT * FROM PERSON;", connection)
+        var id =0
+        while (id1?.next() == true) {
+            id = id1.getInt("USER_ID")?.plus(1)
+        }
+
         if (res?.next() == false) {
             if (connection != null) {
                 insertIntoDB("INSERT INTO PERSON VALUES($id, '$surname', '$Password');", connection)
                 Send2Client(serverSocket, senderAddress, senderPort, "Вы зарегистрировались $surname.")
-                return id.toString().toInt()
+                return id!!
             }
         }
         else{
@@ -130,7 +142,11 @@ class Commander :WorkWithClient(){
                 Send2Client(serverSocket, senderAddress, senderPort, "Password:")
                 var Password = GetFromClient(serverSocket)?.let { md5Custom(it) }
                 var res = getData("SELECT * FROM PERSON WHERE USERNAME = '$surname';", connection)
-                var id = getData("SELECT * FROM PERSON;", connection)?.let { getMaxId(it) }?.plus(1)
+                var id1 = getData("SELECT * FROM PERSON;", connection)
+                var id =0
+                while (id1?.next() == true) {
+                    id = id1.getInt("USER_ID")?.plus(1)
+                }
                 if (res?.next() == true) {
                     if (connection != null) {
                         insertIntoDB("INSERT INTO PERSON VALUES($id, '$surname', '$Password');", connection)
@@ -140,9 +156,14 @@ class Commander :WorkWithClient(){
                 }
             }
         }
-        return id.toString().toInt()
+        return id
     }
     fun authuorizeMod( serverSocket:DatagramSocket, senderAddress: InetAddress, senderPort:Int): Int{
+        try{
+            MakeNewDB()
+        }catch (e: SQLException) {
+            println(e.message)
+        }
         var id:Int =0
         Send2Client(serverSocket, senderAddress, senderPort, "Surname:")
         var surname = GetFromClient(serverSocket)
